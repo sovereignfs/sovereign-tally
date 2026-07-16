@@ -3,8 +3,8 @@ import { integer, pgTable, primaryKey, text, uniqueIndex } from 'drizzle-orm/pg-
 /**
  * Plugin schema — sovereign-tally (Postgres dialect, migration-generation only).
  *
- * Not imported by application code — `db/schema.ts` (SQLite-core builders) is
- * the single schema application code queries against, regardless of which
+ * Not imported by application code — `app/_db/schema.ts` (SQLite-core
+ * builders) is the single schema application code queries against, regardless of which
  * dialect actually backs `sdk.db.getClient()` in production. Drizzle's runtime
  * query builder is bound to the client instance's own dialect (`node-postgres`
  * vs `better-sqlite3`), not to the table object's origin, so the SQLite-typed

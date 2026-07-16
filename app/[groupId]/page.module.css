@@ -1,0 +1,23 @@
+.page {
+  display: grid;
+  gap: var(--sv-space-3);
+  padding: var(--sv-space-6);
+}
+
+.badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sv-space-2);
+  margin-top: calc(-1 * var(--sv-space-4));
+}
+
+.description {
+  margin: 0;
+  color: var(--sv-color-text-secondary);
+}
+
+.comingSoon {
+  margin: 0;
+  color: var(--sv-color-text-subtle);
+  font-size: var(--sv-font-size-sm);
+}

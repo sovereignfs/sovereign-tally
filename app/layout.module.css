@@ -1,0 +1,46 @@
+.shell {
+  display: flex;
+  height: 100%;
+  overflow: hidden;
+}
+
+.sidebar {
+  width: 240px;
+  flex-shrink: 0;
+  border-right: 1px solid var(--sv-color-border);
+  overflow-y: auto;
+  background: var(--sv-color-surface-sunken);
+}
+
+.content {
+  flex: 1;
+  min-width: 0;
+  overflow-y: auto;
+  background: var(--sv-color-surface);
+}
+
+/* 768px matches the platform's canonical mobile breakpoint
+   (@sovereignfs/ui MOBILE_BREAKPOINT_PX / useIsMobile), not a plugin-local
+   guess. Stacks the sidebar above the content instead of a swipeable
+   carousel (sovereign-tasks'/sovereign-shopper's pattern) — out of scope
+   for this task, revisit once Tally has enough per-group content to justify
+   dedicated mobile navigation. */
+@media (max-width: 768px) {
+  .shell {
+    flex-direction: column;
+    overflow: visible;
+    height: auto;
+    min-height: 100%;
+  }
+
+  .sidebar {
+    width: 100%;
+    max-height: 40vh;
+    border-right: none;
+    border-bottom: 1px solid var(--sv-color-border);
+  }
+
+  .content {
+    overflow-y: visible;
+  }
+}
