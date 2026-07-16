@@ -21,3 +21,9 @@
   color: var(--sv-color-text-subtle);
   font-size: var(--sv-font-size-sm);
 }
+
+.dangerZone {
+  margin-top: var(--sv-space-6);
+  padding-top: var(--sv-space-4);
+  border-top: 1px solid var(--sv-color-border);
+}

@@ -26,7 +26,7 @@ Status: ✅ done · 🚧 in progress · 📋 not started · 🔒 blocked (on a P
 | 0.1.1 | `manifest.json` + `icon.svg` + directory scaffold                     | ✅     | —              | Plugin   |
 | 0.1.2 | `db/schema.ts` — all `tally_*` tables + migrations                   | ✅     | —              | Plugin   |
 | 0.1.3 | Groups: create, rename, archive                                       | ✅     | SPL-01         | Plugin   |
-| 0.1.4 | Groups: delete when all balances zero                                 | 📋     | SPL-02         | Plugin   |
+| 0.1.4 | Groups: delete when all balances zero                                 | ✅     | SPL-02         | Plugin   |
 | 0.1.5 | Members: add instance users + guest members (name + optional email)   | 📋     | SPL-03         | Plugin   |
 | 0.1.6 | Members: remove when balance zero                                     | 📋     | SPL-04         | Plugin   |
 | 0.1.7 | `sdk.directory` integration for member search/select UI                | 📋     | (supports SPL-03) | Plugin |
