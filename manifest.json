@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "id": "fs.sovereign.tally",
+  "name": "Tally",
+  "version": "0.1.0",
+  "description": "Shared expense tracking and debt settlement.",
+  "type": "sovereign",
+  "runtime": "native",
+  "routePrefix": "/tally",
+  "shell": "default",
+  "icon": "icon.svg",
+  "permissions": [
+    "auth:session",
+    "db:readWrite",
+    "mailer:send",
+    "notifications:send",
+    "activity:write",
+    "data:provide"
+  ],
+  "repository": "https://github.com/sovereignfs/sovereign-tally",
+  "compatibility": {
+    "minPlatformVersion": "0.26.0"
+  }
+}

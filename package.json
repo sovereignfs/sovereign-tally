@@ -1,0 +1,25 @@
+{
+  "name": "@sovereignfs/sovereign-tally",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "license": "AGPL-3.0-or-later",
+  "scripts": {
+    "db:generate:pg": "drizzle-kit generate --config=drizzle.config.pg.ts"
+  },
+  "dependencies": {
+    "@sovereignfs/sdk": "workspace:*",
+    "@sovereignfs/ui": "workspace:*",
+    "next": "catalog:",
+    "react": "catalog:",
+    "react-dom": "catalog:"
+  },
+  "devDependencies": {
+    "@sovereignfs/tsconfig": "workspace:*",
+    "@types/react": "catalog:",
+    "@types/react-dom": "catalog:",
+    "drizzle-kit": "^0.31.10",
+    "drizzle-orm": "^0.45.2",
+    "typescript": "catalog:"
+  }
+}
