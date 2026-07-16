@@ -1,7 +1,8 @@
 import { notFound } from 'next/navigation';
 import { Badge, PageHeader } from '@sovereignfs/ui';
 import { DeleteGroupButton } from '../_components/DeleteGroupButton';
-import { getGroup } from '../_lib/actions';
+import { MembersSection } from '../_components/MembersSection';
+import { getGroup, getGroupMembers } from '../_lib/actions';
 import styles from './page.module.css';
 
 export default async function TallyGroupPage({
@@ -12,6 +13,8 @@ export default async function TallyGroupPage({
   const { groupId } = await params;
   const group = await getGroup(groupId);
   if (!group) notFound();
+
+  const members = await getGroupMembers(groupId);
 
   return (
     <div className={styles.page}>
@@ -26,6 +29,7 @@ export default async function TallyGroupPage({
       <p className={styles.comingSoon}>
         Expenses, balances, and activity for this group are coming soon.
       </p>
+      <MembersSection groupId={group.id} members={members} />
       <div className={styles.dangerZone}>
         <DeleteGroupButton groupId={group.id} groupName={group.name} canDelete={group.canDelete} />
       </div>

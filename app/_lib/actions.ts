@@ -36,6 +36,22 @@ export interface GroupDetail extends GroupRow {
   canDelete: boolean;
 }
 
+export interface MemberRow {
+  id: string;
+  userId: string | null;
+  guestName: string | null;
+  guestEmail: string | null;
+  /** Resolved display name — directory name/email for instance users, guestName for guests. */
+  displayName: string;
+  joinedAt: number;
+}
+
+export interface DirectoryUserOption {
+  id: string;
+  name: string;
+  email: string;
+}
+
 function now() {
   return Math.floor(Date.now() / 1000);
 }
@@ -276,4 +292,108 @@ export async function deleteGroup(groupId: string): Promise<ActionResult> {
 
   revalidatePath('/tally');
   return { ok: true };
+}
+
+/** Members of a group, instance users first (join order), then guests. */
+export async function getGroupMembers(groupId: string): Promise<MemberRow[]> {
+  const { db, userId, tenantId } = await getContext();
+  await requireMembership(db, tenantId, groupId, userId);
+
+  const rows = await db
+    .select()
+    .from(tallyGroupMembers)
+    .where(and(eq(tallyGroupMembers.tenantId, tenantId), eq(tallyGroupMembers.groupId, groupId)))
+    .orderBy(asc(tallyGroupMembers.joinedAt));
+
+  const instanceUserIds = rows.map((r) => r.userId).filter((id): id is string => id !== null);
+  const directoryUsers =
+    instanceUserIds.length > 0 ? await sdk.directory.resolveUsers({ ids: instanceUserIds }) : [];
+  const directoryById = new Map(directoryUsers.map((u) => [u.id, u]));
+
+  return rows.map((r) => {
+    const directoryUser = r.userId ? directoryById.get(r.userId) : undefined;
+    return {
+      id: r.id,
+      userId: r.userId,
+      guestName: r.guestName,
+      guestEmail: r.guestEmail,
+      displayName: directoryUser?.name ?? directoryUser?.email ?? r.guestName ?? 'Unknown',
+      joinedAt: r.joinedAt,
+    };
+  });
+}
+
+/** Instance users matching `query`, excluding people already in the group (SPL-03). */
+export async function searchMembersToAdd(
+  groupId: string,
+  query: string,
+): Promise<DirectoryUserOption[]> {
+  const trimmed = query.trim();
+  if (trimmed.length < 2) return [];
+
+  const { db, userId, tenantId } = await getContext();
+  await requireMembership(db, tenantId, groupId, userId);
+
+  const existing = await db
+    .select({ userId: tallyGroupMembers.userId })
+    .from(tallyGroupMembers)
+    .where(and(eq(tallyGroupMembers.tenantId, tenantId), eq(tallyGroupMembers.groupId, groupId)));
+  const existingIds = new Set(existing.map((r) => r.userId).filter(Boolean));
+
+  const results = await sdk.directory.searchUsers({ query: trimmed, limit: 8 });
+  return results
+    .filter((u) => !existingIds.has(u.id))
+    .map((u) => ({ id: u.id, name: u.name ?? u.email, email: u.email }));
+}
+
+/** Adds an instance user to the group (SPL-03). */
+export async function addInstanceMember(groupId: string, memberUserId: string): Promise<void> {
+  const { db, userId, tenantId } = await getContext();
+  await requireMembership(db, tenantId, groupId, userId);
+
+  const [existing] = await db
+    .select({ id: tallyGroupMembers.id })
+    .from(tallyGroupMembers)
+    .where(
+      and(
+        eq(tallyGroupMembers.tenantId, tenantId),
+        eq(tallyGroupMembers.groupId, groupId),
+        eq(tallyGroupMembers.userId, memberUserId),
+      ),
+    )
+    .limit(1);
+  if (existing) throw new Error('That person is already in this group.');
+
+  await db.insert(tallyGroupMembers).values({
+    id: randomUUID(),
+    tenantId,
+    groupId,
+    userId: memberUserId,
+    guestName: null,
+    guestEmail: null,
+    joinedAt: now(),
+  });
+
+  revalidatePath(`/tally/${groupId}`);
+}
+
+/** Adds a guest member by name and optional email (SPL-03). */
+export async function addGuestMember(groupId: string, name: string, email: string): Promise<void> {
+  const trimmed = name.trim();
+  if (!trimmed) throw new Error('Guest name is required.');
+
+  const { db, userId, tenantId } = await getContext();
+  await requireMembership(db, tenantId, groupId, userId);
+
+  await db.insert(tallyGroupMembers).values({
+    id: randomUUID(),
+    tenantId,
+    groupId,
+    userId: null,
+    guestName: trimmed,
+    guestEmail: email.trim() || null,
+    joinedAt: now(),
+  });
+
+  revalidatePath(`/tally/${groupId}`);
 }
