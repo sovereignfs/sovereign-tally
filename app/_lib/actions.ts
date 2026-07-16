@@ -44,6 +44,8 @@ export interface MemberRow {
   /** Resolved display name — directory name/email for instance users, guestName for guests. */
   displayName: string;
   joinedAt: number;
+  /** True when this member's balance is zero and they aren't the group's last member (SPL-04). */
+  canRemove: boolean;
 }
 
 export interface DirectoryUserOption {
@@ -78,13 +80,18 @@ async function requireMembership(db: Db, tenantId: string, groupId: string, user
 }
 
 /**
- * True when every member's net balance (amount paid via non-deleted expenses
- * minus amount owed, adjusted by settlements) is zero — the precondition for
- * deleting a group (SPL-02). Not the full balance-display calculation
- * (lib/balance.ts, debt simplification, multi-currency) — just the yes/no
- * check this guard needs.
+ * Net balance per member (amount paid via non-deleted expenses minus amount
+ * owed, adjusted by settlements) — the yes/no input both the group-delete
+ * guard (SPL-02) and the member-remove guard (SPL-04) need. Not the full
+ * balance-display calculation (lib/balance.ts, debt simplification,
+ * multi-currency) — a member absent from the returned map has a zero
+ * balance (never had an expense/settlement row).
  */
-async function groupHasZeroBalances(db: Db, tenantId: string, groupId: string): Promise<boolean> {
+async function computeGroupBalances(
+  db: Db,
+  tenantId: string,
+  groupId: string,
+): Promise<Map<string, number>> {
   const balances = new Map<string, number>();
 
   const expenseRows = await db
@@ -130,6 +137,12 @@ async function groupHasZeroBalances(db: Db, tenantId: string, groupId: string): 
     balances.set(s.toMemberId, (balances.get(s.toMemberId) ?? 0) - s.amount);
   }
 
+  return balances;
+}
+
+/** True when every member's net balance is zero — the precondition for deleting a group (SPL-02). */
+async function groupHasZeroBalances(db: Db, tenantId: string, groupId: string): Promise<boolean> {
+  const balances = await computeGroupBalances(db, tenantId, groupId);
   return [...balances.values()].every((balance) => balance === 0);
 }
 
@@ -310,6 +323,8 @@ export async function getGroupMembers(groupId: string): Promise<MemberRow[]> {
     instanceUserIds.length > 0 ? await sdk.directory.resolveUsers({ ids: instanceUserIds }) : [];
   const directoryById = new Map(directoryUsers.map((u) => [u.id, u]));
 
+  const balances = await computeGroupBalances(db, tenantId, groupId);
+
   return rows.map((r) => {
     const directoryUser = r.userId ? directoryById.get(r.userId) : undefined;
     return {
@@ -319,6 +334,7 @@ export async function getGroupMembers(groupId: string): Promise<MemberRow[]> {
       guestEmail: r.guestEmail,
       displayName: directoryUser?.name ?? directoryUser?.email ?? r.guestName ?? 'Unknown',
       joinedAt: r.joinedAt,
+      canRemove: (balances.get(r.id) ?? 0) === 0 && rows.length > 1,
     };
   });
 }
@@ -396,4 +412,40 @@ export async function addGuestMember(groupId: string, name: string, email: strin
   });
 
   revalidatePath(`/tally/${groupId}`);
+}
+
+/**
+ * Removes a member from a group — only when their balance is zero and
+ * they aren't the group's last member (SPL-04). Expected-failure result,
+ * not a throw: reachable from normal use of the members list.
+ */
+export async function removeMember(groupId: string, memberId: string): Promise<ActionResult> {
+  const { db, userId, tenantId } = await getContext();
+  await requireMembership(db, tenantId, groupId, userId);
+
+  const memberRows = await db
+    .select({ id: tallyGroupMembers.id })
+    .from(tallyGroupMembers)
+    .where(and(eq(tallyGroupMembers.tenantId, tenantId), eq(tallyGroupMembers.groupId, groupId)));
+  if (memberRows.length <= 1) {
+    return { ok: false, error: 'A group needs at least one member.' };
+  }
+
+  const balances = await computeGroupBalances(db, tenantId, groupId);
+  if ((balances.get(memberId) ?? 0) !== 0) {
+    return { ok: false, error: "Settle this member's balance before removing them." };
+  }
+
+  await db
+    .delete(tallyGroupMembers)
+    .where(
+      and(
+        eq(tallyGroupMembers.tenantId, tenantId),
+        eq(tallyGroupMembers.groupId, groupId),
+        eq(tallyGroupMembers.id, memberId),
+      ),
+    );
+
+  revalidatePath(`/tally/${groupId}`);
+  return { ok: true };
 }

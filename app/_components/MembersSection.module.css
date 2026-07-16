@@ -32,6 +32,32 @@
   color: var(--sv-color-text-primary);
 }
 
+.spacer {
+  flex: 1;
+}
+
+.removeButton {
+  all: unset;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--sv-radius-sm);
+  color: var(--sv-color-text-subtle);
+  cursor: pointer;
+}
+
+.removeButton:hover:not(:disabled) {
+  background: var(--sv-color-surface-sunken);
+  color: var(--sv-color-error-text);
+}
+
+.removeButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+
 .guestForm {
   display: grid;
   gap: var(--sv-space-3);

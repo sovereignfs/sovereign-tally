@@ -1,9 +1,25 @@
 'use client';
 
 import { useEffect, useState, useTransition } from 'react';
-import { Avatar, Badge, Button, FormField, Input, SuggestionInput } from '@sovereignfs/ui';
+import {
+  Avatar,
+  Badge,
+  Button,
+  ConfirmDialog,
+  FormField,
+  Icon,
+  Input,
+  SuggestionInput,
+  Tooltip,
+} from '@sovereignfs/ui';
 import { useRouter } from 'next/navigation';
-import { addGuestMember, addInstanceMember, searchMembersToAdd, type MemberRow } from '../_lib/actions';
+import {
+  addGuestMember,
+  addInstanceMember,
+  removeMember,
+  searchMembersToAdd,
+  type MemberRow,
+} from '../_lib/actions';
 import styles from './MembersSection.module.css';
 
 interface Props {
@@ -21,6 +37,8 @@ export function MembersSection({ groupId, members }: Props) {
   const [addingGuest, setAddingGuest] = useState(false);
   const [guestName, setGuestName] = useState('');
   const [guestEmail, setGuestEmail] = useState('');
+  const [removeTarget, setRemoveTarget] = useState<MemberRow | null>(null);
+  const [removeError, setRemoveError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
   useEffect(() => {
@@ -47,6 +65,21 @@ export function MembersSection({ groupId, members }: Props) {
     });
   }
 
+  function confirmRemove() {
+    const member = removeTarget;
+    if (!member) return;
+    setRemoveError(null);
+    startTransition(async () => {
+      const result = await removeMember(groupId, member.id);
+      if (result.ok) {
+        setRemoveTarget(null);
+        router.refresh();
+      } else {
+        setRemoveError(result.error);
+      }
+    });
+  }
+
   function submitGuest() {
     const trimmed = guestName.trim();
     if (!trimmed) return;
@@ -64,13 +97,40 @@ export function MembersSection({ groupId, members }: Props) {
       <h2 className={styles.heading}>Members</h2>
 
       <ul className={styles.list}>
-        {members.map((member) => (
-          <li key={member.id} className={styles.item}>
-            <Avatar name={member.displayName} size="sm" />
-            <span className={styles.name}>{member.displayName}</span>
-            {member.userId === null && <Badge variant="mono">Guest</Badge>}
-          </li>
-        ))}
+        {members.map((member) => {
+          const removeButton = (
+            <button
+              type="button"
+              className={styles.removeButton}
+              onClick={() => setRemoveTarget(member)}
+              disabled={!member.canRemove}
+              aria-label={`Remove ${member.displayName}`}
+            >
+              <Icon name="x" size="sm" aria-hidden />
+            </button>
+          );
+          return (
+            <li key={member.id} className={styles.item}>
+              <Avatar name={member.displayName} size="sm" />
+              <span className={styles.name}>{member.displayName}</span>
+              {member.userId === null && <Badge variant="mono">Guest</Badge>}
+              <span className={styles.spacer} />
+              {member.canRemove ? (
+                removeButton
+              ) : (
+                <Tooltip
+                  content={
+                    members.length <= 1
+                      ? 'A group needs at least one member.'
+                      : "Settle this member's balance before removing them."
+                  }
+                >
+                  {removeButton}
+                </Tooltip>
+              )}
+            </li>
+          );
+        })}
       </ul>
 
       <SuggestionInput
@@ -129,6 +189,25 @@ export function MembersSection({ groupId, members }: Props) {
           Add a guest instead
         </button>
       )}
+
+      <ConfirmDialog
+        open={removeTarget !== null}
+        onClose={() => {
+          setRemoveTarget(null);
+          setRemoveError(null);
+        }}
+        title="Remove member"
+        message={
+          <>
+            Remove <strong>{removeTarget?.displayName}</strong> from this group?
+          </>
+        }
+        onConfirm={confirmRemove}
+        confirmLabel={pending ? 'Removing…' : 'Remove'}
+        destructive
+        pending={pending}
+        error={removeError}
+      />
     </section>
   );
 }
