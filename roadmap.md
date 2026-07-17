@@ -29,13 +29,13 @@ Status: ✅ done · 🚧 in progress · 📋 not started · 🔒 blocked (on a P
 | 0.1.4 | Groups: delete when all balances zero                                 | ✅     | SPL-02         | Plugin   |
 | 0.1.5 | Members: add instance users + guest members (name + optional email)   | ✅     | SPL-03         | Plugin   |
 | 0.1.6 | Members: remove when balance zero                                     | ✅     | SPL-04         | Plugin   |
-| 0.1.7 | `sdk.directory` integration for member search/select UI                | 📋     | (supports SPL-03) | Plugin |
-| 0.1.8 | Expense CRUD: create with description, amount, date, category, payer   | 📋     | SPL-05         | Plugin   |
-| 0.1.9 | Split methods: equal, exact amount, percentage, shares                 | 📋     | SPL-05, SPL-12, SPL-13, SPL-14 | Plugin |
-| 0.1.10 | Multiple payers per expense                                          | 📋     | SPL-15         | Plugin   |
-| 0.1.11 | Edit expense                                                          | 📋     | SPL-06         | Plugin   |
-| 0.1.12 | Soft-delete expense (preserved in activity feed)                     | 📋     | SPL-07         | Plugin   |
-| 0.1.13 | `lib/balance.ts` — balance calculation at query time                 | 📋     | SPL-09, SPL-10 | Plugin   |
+| 0.1.7 | `sdk.directory` integration for member search/select UI                | ✅     | (supports SPL-03) | Plugin |
+| 0.1.8 | Expense CRUD: create with description, amount, date, category, payer   | ✅     | SPL-05         | Plugin   |
+| 0.1.9 | Split methods: equal, exact amount, percentage, shares                 | ✅     | SPL-05, SPL-12, SPL-13, SPL-14 | Plugin |
+| 0.1.10 | Multiple payers per expense                                          | ✅     | SPL-15         | Plugin   |
+| 0.1.11 | Edit expense                                                          | ✅     | SPL-06         | Plugin   |
+| 0.1.12 | Soft-delete expense (preserved in activity feed)                     | ✅     | SPL-07         | Plugin   |
+| 0.1.13 | `lib/balance.ts` — balance calculation at query time                 | ✅     | SPL-09, SPL-10 | Plugin   |
 | 0.1.14 | `lib/balance.ts` — greedy debt-simplification algorithm              | 📋     | SPL-11         | Plugin   |
 | 0.1.15 | Activity feed per group (expenses + settlements, chronological)      | 📋     | SPL-08         | Plugin   |
 | 0.1.16 | `sdk.activity` integration — platform-visible expense/settlement events | 📋   | (supports SPL-08) | Plugin |
@@ -43,6 +43,32 @@ Status: ✅ done · 🚧 in progress · 📋 not started · 🔒 blocked (on a P
 | 0.1.18 | `sdk.notifications` integration — member added / expense added / payer set | 📋 | SPL-24         | Plugin   |
 | 0.1.19 | Rely on platform Notification Center for read state, muting, push     | 📋     | SPL-25         | Plugin   |
 | 0.1.20 | `@sovereignfs/ui` primitives: split-method selector, member multi-select w/ guest-add, integer currency input, balance chip | 📋 | (UI, see SPEC) | Plugin |
+
+**0.1.7 note:** folded into 0.1.5's implementation rather than done as a
+separate pass — you can't add an instance user without `sdk.directory` in the
+first place, so `searchUsers` (debounced `SuggestionInput`) and
+`resolveUsers` (member-list display names) landed together with the add-member
+UI. Nothing left to do here that isn't already covered.
+
+**0.1.8 note:** ships single-payer, equal-split expenses only — participant
+selection (who's in on the split) is part of SPL-05 itself, so it's included
+here rather than deferred. Exact-amount/percentage/shares split methods
+(SPL-12–14) and multiple payers (SPL-15) are still 0.1.9/0.1.10.
+
+**0.1.11 note:** the edit form pre-fills from the expense's stored data.
+`tally_expense_shares` only stores the resulting cents, not the original
+percentage/share-count inputs, so for those two split methods the form
+reconstructs a best-effort equivalent (percentage: `share_amount /
+expense_total × 100`; shares: the share amounts reduced to their integer
+GCD ratio) — resubmitting unedited always still sums correctly, but the
+displayed numbers may not byte-match what was originally typed.
+
+**0.1.13 note:** `computeNetBalances` (pure, per-member net balance from
+payer/share/settlement rows) now lives in `lib/balance.ts`; `actions.ts`
+fetches the rows and delegates to it. `getOverallBalance` (SPL-10 calc) is
+in place — per active group, the current user's net balance. No UI consumes
+either yet; the balance/overall-summary *view* and debt simplification
+(SPL-11) are 0.1.17/0.1.14.
 
 **Done when:** a user can create a group, add expenses with any split method
 and multiple payers, view simplified balances, receive an in-app notification
