@@ -1,0 +1,79 @@
+.form {
+  display: grid;
+  gap: var(--sv-space-3);
+}
+
+.grid {
+  display: grid;
+  gap: var(--sv-space-3);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.splitMethod {
+  display: grid;
+  gap: var(--sv-space-2);
+}
+
+.participants {
+  display: grid;
+  gap: var(--sv-space-2);
+}
+
+.participantsLabel {
+  font-size: var(--sv-font-size-sm);
+  font-weight: var(--sv-font-weight-medium);
+  color: var(--sv-color-text-primary);
+}
+
+.participantRow {
+  display: flex;
+  align-items: center;
+  gap: var(--sv-space-2);
+}
+
+.splitValueInput {
+  width: 6rem;
+  margin-left: auto;
+}
+
+.splitHint {
+  font-size: var(--sv-font-size-xs);
+  color: var(--sv-color-text-subtle);
+}
+
+.linkButton {
+  all: unset;
+  align-self: flex-start;
+  font-size: var(--sv-font-size-sm);
+  color: var(--sv-color-text-muted);
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.linkButton:hover {
+  color: var(--sv-color-text-primary);
+}
+
+.feedbackError {
+  margin: 0;
+  font-size: var(--sv-font-size-sm);
+  padding: var(--sv-space-2) var(--sv-space-3);
+  border-radius: var(--sv-radius-md);
+  border: 1px solid var(--sv-color-error-border);
+  background-color: var(--sv-color-error-surface);
+  color: var(--sv-color-error-text);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sv-space-2);
+  justify-content: flex-end;
+  padding-top: var(--sv-space-2);
+}
+
+@media (max-width: 768px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+}
