@@ -16,7 +16,9 @@
     "mailer:send",
     "notifications:send",
     "activity:write",
-    "data:provide"
+    "data:provide",
+    "data:export",
+    "data:import"
   ],
   "repository": "https://github.com/sovereignfs/sovereign-tally",
   "compatibility": {
