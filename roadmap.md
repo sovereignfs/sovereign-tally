@@ -1,6 +1,6 @@
 # Tally — Roadmap
 
-**Version:** 1.0 · **Last updated:** 2026-07-22
+**Version:** 0.4 · **Last updated:** 2026-07-22
 
 Chronological build index for the Tally plugin, derived from
 [`SPEC.md`](SPEC.md). One row per task; each task = one branch = one PR in the
@@ -322,7 +322,13 @@ settlement summary email delivers current balances and suggested payments.
 
 ---
 
-## v1.0 — Stable
+## v1.0 — Stable (target milestone name — not yet tagged as such)
+
+Both tasks below are done, but this milestone's *name* is the original
+target from the design-phase build plan, not a claim that the plugin is
+actually tagged `1.0.0`/production-stable yet — see the 1.0.2 note and
+`manifest.json`/`package.json` (currently `0.11.0`). Promote to a real
+`1.0.0` after real usage, not automatically once every task box is checked.
 
 | #     | Task                                          | Status | Requirement(s) | Label  |
 | ----- | ------------------------------------------------ | ------ | -------------- | ------ |
@@ -344,13 +350,16 @@ what actually shipped (renamed to "Resolved decisions") — most notably,
 group deletion **blocks** on unsettled balances rather than the originally-
 recommended warn-and-allow, and settlement/expense-notification emails never
 reach guest members at all (no `guest_email` send anywhere), both stricter
-than the original draft's recommendation. SPEC.md's header bumped to
-`v1.0`/`Stable`; `manifest.json`/`package.json` bumped to `1.0.0` and the
-`development: true` manifest flag removed (its documented purpose —
-"marks the plugin as still under active development... surfaced as a
-warning badge" — no longer applies once every v0.1–v0.4 requirement has
-shipped). No behavior changes beyond the manifest/doc updates themselves —
-full `tsc`/`eslint`/`prettier`/`vitest`/`design:tokens:check` pass confirmed
+than the original draft's recommendation. `manifest.json`/`package.json`
+bumped to `0.11.0` (minor — every v0.1–v0.4 requirement implemented in one
+pass) rather than `1.0.0`: everything here has been self-verified in dev
+only, with zero real-world usage, independent review, or server-action test
+coverage (only pure helpers like `balance.ts`/`csv.ts`/`money.ts` have unit
+tests — `actions.ts` itself doesn't) — a 1.0.0 stable-contract claim would
+be premature until this has actually been used. `development: true` stays
+set in the manifest for the same reason. No behavior changes beyond the
+manifest/doc updates themselves — full
+`tsc`/`eslint`/`prettier`/`vitest`/`design:tokens:check` pass confirmed
 clean after every edit in this pass.
 
 ---

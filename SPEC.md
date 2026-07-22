@@ -1,10 +1,10 @@
 # Tally
 
-**Version:** 1.0\
+**Version:** 0.4\
 **Date:** July 2026\
 **Author(s):** kasunben, DishanRajapaksha\
 **Purpose:** Canonical specification for the Sovereign Tally plugin — the single source of truth for its manifest, access model, data model, and build plan.\
-**Status:** Stable — all v0.1–v0.4 requirements (SPL-01–25) shipped, see roadmap.md
+**Status:** All v0.1–v0.4 requirements (SPL-01–25) implemented and self-verified, see roadmap.md — not yet burned in with real usage; premature to call this v1.0/Stable.
 
 ---
 
@@ -388,8 +388,9 @@ Documentation, polish, plugin developer guide reference. No scope expansion.
 ## Resolved decisions (formerly "Open questions")
 
 All four questions below were open during the design phase and are now
-resolved by what actually shipped through v1.0 — recorded here rather than
-left as speculative "recommendations" that no longer match the code.
+resolved by what actually shipped through the v0.1–v0.4 build — recorded
+here rather than left as speculative "recommendations" that no longer match
+the code.
 
 1. **Delete group with unsettled balances: blocked, not warn-and-allow.**
    SPL-02 as written ("only when all member balances are zero") is what
@@ -397,7 +398,8 @@ left as speculative "recommendations" that no longer match the code.
    until every member is settled in every currency (0.1.4, extended for
    multi-currency in 0.3.3). The original "warn + allow" recommendation was
    never implemented; a full block was judged safer for real financial
-   records than an override a user could click through by habit.
+   records than an override a user could click through by habit. Revisit if
+   real usage shows this is too strict.
 2. **Guest member emails: guests receive no email at all.** Neither the
    expense-added email (SPL-17) nor the settlement-summary email (SPL-18)
    sends to `tally_group_members.guest_email` — both are scoped to instance
@@ -408,19 +410,19 @@ left as speculative "recommendations" that no longer match the code.
    should be emailing on the instance's behalf. A "join instance from Tally
    invite" flow remains a real post-v1.1 opportunity, not yet scoped.
 3. **Personal IOUs: no dedicated flow — confirmed sufficient.** A two-member
-   group covers this throughout v0.1–v1.0 with no special-cased UI or schema;
+   group covers this throughout v0.1–v0.4 with no special-cased UI or schema;
    nothing surfaced during the build that needed one.
 4. **Balance computation performance: still query-time, unchanged.**
    `computeGroupBalancesByCurrency` (0.3.3) added a currency-bucketing pass
    but stayed query-time-only — no pre-aggregated snapshot table was needed
-   through v1.0. Revisit only if a real instance's group size/expense count
+   through v0.4. Revisit only if a real instance's group size/expense count
    makes this measurably slow, not preemptively.
 
 ## Changelog
 
 | Version | Date     | Change                                                                                    |
 | ------- | -------- | ----------------------------------------------------------------------------------------- |
-| 1.0     | Jul 2026 | v1.0 stable — all v0.1–v0.4 requirements (SPL-01–25) shipped. Resolved the four design-phase "Open questions" against actual shipped behavior (see "Resolved decisions" above) rather than leaving them as stale recommendations. |
+| 0.4     | Jul 2026 | All v0.1–v0.4 requirements (SPL-01–25) implemented and self-verified — not yet used in production, so **not** tagged v1.0/Stable (see Status above). Resolved the four design-phase "Open questions" against actual implemented behavior (see "Resolved decisions" above) rather than leaving them as stale recommendations. |
 | 0.3     | Jul 2026 | Corrected stale "proposed" framing: `sdk.directory` (RFC 0041), `sdk.data`, `sdk.portability`, `sdk.notifications`, and `sdk.activity` are all implemented (still experimental-tier, not stable). `sdk.tools` (RFC 0047) confirmed genuinely not implemented — flagged as the one real blocking gap for any assistant-driven settlement flow. |
 | 0.2     | Jun 2026 | Added manifest `icon` field; added missing `tenant_id` to member/payer/share/push tables. |
 | 0.1     | Jun 2026 | Initial draft — feature set designed from Splitwise analysis and design session.          |
