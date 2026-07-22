@@ -12,3 +12,11 @@ export function fromISODate(value: string): Date {
   const [year, month, day] = value.split('-').map(Number);
   return new Date(year ?? 1970, (month ?? 1) - 1, day ?? 1);
 }
+
+/** Formats a Unix epoch-seconds timestamp as a short local date + time, for activity feeds. */
+export function formatTimestamp(epochSeconds: number): string {
+  return new Date(epochSeconds * 1000).toLocaleString(undefined, {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  });
+}

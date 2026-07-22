@@ -2,9 +2,8 @@
   "schemaVersion": 1,
   "id": "fs.sovereign.tally",
   "name": "Tally",
-  "version": "0.10.1",
+  "version": "1.0.0",
   "description": "Shared expense tracking and debt settlement.",
-  "development": true,
   "type": "sovereign",
   "runtime": "native",
   "routePrefix": "/tally",
@@ -20,6 +19,30 @@
     "data:export",
     "data:import"
   ],
+  "data": {
+    "provides": [
+      {
+        "contract": "Tally.groups",
+        "version": 1,
+        "description": "Groups visible to the current user."
+      },
+      {
+        "contract": "Tally.balances",
+        "version": 1,
+        "description": "Per-group net balance for the current user, across every active group they belong to."
+      },
+      {
+        "contract": "Tally.expenses",
+        "version": 1,
+        "description": "Expense summaries visible to the current user."
+      },
+      {
+        "contract": "Tally.memberships",
+        "version": 1,
+        "description": "Group member display data and roles."
+      }
+    ]
+  },
   "repository": "https://github.com/sovereignfs/sovereign-tally",
   "compatibility": {
     "minPlatformVersion": "0.26.0"

@@ -18,10 +18,8 @@ import { integer, primaryKey, sqliteTable, text, uniqueIndex } from 'drizzle-orm
  *
  * v0.1 ships groups, members (instance users + guests), expenses with all
  * four split methods, multi-payer expenses, and settlements' FK targets
- * (group_members). tally_settlements itself is v0.2 (SPL-16) but is defined
- * now, alongside its FK targets, to avoid a later migration reshaping
- * tally_group_members. tally_expense_comments (v0.2, SPL-20) is not defined
- * yet — added when that milestone starts.
+ * (group_members). tally_settlements and tally_expense_comments are v0.2
+ * (SPL-16, SPL-20).
  */
 
 export const tallyGroups = sqliteTable('tally_groups', {
@@ -68,6 +66,17 @@ export const tallyExpenses = sqliteTable('tally_expenses', {
   amount: integer('amount').notNull(),
   /** ISO 4217. Defaults to the group's currency; set at creation. */
   currency: text('currency').notNull(),
+  /**
+   * v0.3 (SPL-22) — manual exchange rate, only set when `currency` differs
+   * from the group's own currency: 1 unit of `currency` equals
+   * `exchange_rate_micros / 1,000,000` units of the group's currency.
+   * Integer (×1,000,000), never a float, matching the "amounts are always
+   * smallest-unit integers" convention — a rate isn't a monetary amount, but
+   * storing it as a float would reintroduce the exact precision drift that
+   * convention exists to avoid. Automatic conversion is explicitly deferred
+   * (SPEC.md); this is purely a manually-entered informational figure.
+   */
+  exchangeRateMicros: integer('exchange_rate_micros'),
   /** 'food_drink' | 'housing' | 'transport' | 'entertainment' | 'health' | 'shopping' | 'travel' | 'other' */
   category: text('category').notNull(),
   /** ISO date string 'YYYY-MM-DD'. */
@@ -126,6 +135,18 @@ export const tallySettlements = sqliteTable('tally_settlements', {
   currency: text('currency').notNull(),
   date: text('date'),
   notes: text('notes'),
+  createdBy: text('created_by').notNull(),
+  createdAt: integer('created_at').notNull(),
+});
+
+/** v0.2 (SPL-20) — free-text comments on an expense, by any group member. */
+export const tallyExpenseComments = sqliteTable('tally_expense_comments', {
+  id: text('id').primaryKey(),
+  tenantId: text('tenant_id').notNull(),
+  expenseId: text('expense_id').notNull(),
+  /** Denormalized from the expense row — lets group-scoped queries/deletes skip a join. */
+  groupId: text('group_id').notNull(),
+  body: text('body').notNull(),
   createdBy: text('created_by').notNull(),
   createdAt: integer('created_at').notNull(),
 });

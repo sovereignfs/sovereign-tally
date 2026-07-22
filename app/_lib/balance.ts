@@ -48,3 +48,54 @@ export function computeNetBalances(
 
   return balances;
 }
+
+export interface SimplifiedPayment {
+  fromMemberId: string;
+  toMemberId: string;
+  /** Cents. */
+  amount: number;
+}
+
+/**
+ * Greedy minimum-transaction debt simplification (SPL-11): repeatedly match
+ * the largest debtor against the largest creditor, settling the smaller of
+ * the two amounts, until every net balance is zero. Not the theoretical
+ * minimum in every case (that's NP-hard in general), but the standard
+ * greedy approximation used by every splitwise-style app in practice, and
+ * optimal for the common case of one or two connected components.
+ */
+export function simplifyDebts(balances: Map<string, number>): SimplifiedPayment[] {
+  const debtors: { memberId: string; amount: number }[] = [];
+  const creditors: { memberId: string; amount: number }[] = [];
+
+  for (const [memberId, amount] of balances) {
+    if (amount < 0) debtors.push({ memberId, amount: -amount });
+    else if (amount > 0) creditors.push({ memberId, amount });
+  }
+
+  debtors.sort((a, b) => b.amount - a.amount);
+  creditors.sort((a, b) => b.amount - a.amount);
+
+  const payments: SimplifiedPayment[] = [];
+  let i = 0;
+  let j = 0;
+  while (i < debtors.length && j < creditors.length) {
+    const debtor = debtors.at(i);
+    const creditor = creditors.at(j);
+    if (!debtor || !creditor) break;
+
+    const amount = Math.min(debtor.amount, creditor.amount);
+
+    if (amount > 0) {
+      payments.push({ fromMemberId: debtor.memberId, toMemberId: creditor.memberId, amount });
+    }
+
+    debtor.amount -= amount;
+    creditor.amount -= amount;
+
+    if (debtor.amount === 0) i++;
+    if (creditor.amount === 0) j++;
+  }
+
+  return payments;
+}

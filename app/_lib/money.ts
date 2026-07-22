@@ -57,6 +57,28 @@ export function splitByWeights(totalCents: number, weights: number[]): number[] 
   return result;
 }
 
+/**
+ * Parses a user-entered exchange rate (e.g. "1.0842") into micros (×1,000,000
+ * integer) — SPL-22's manual, never-a-float storage convention. Null if not
+ * a valid positive rate.
+ */
+export function rateToMicros(value: string): number | null {
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  const parsed = Number(trimmed);
+  if (!Number.isFinite(parsed) || parsed <= 0) return null;
+  return Math.round(parsed * 1_000_000);
+}
+
+export function microsToRate(micros: number): string {
+  return (micros / 1_000_000).toString();
+}
+
+/** Converts a foreign-currency expense amount into the group's currency using its stored manual exchange rate. */
+export function convertCentsWithRate(amountCents: number, exchangeRateMicros: number): number {
+  return Math.round((amountCents * exchangeRateMicros) / 1_000_000);
+}
+
 function gcd(a: number, b: number): number {
   return b === 0 ? a : gcd(b, a % b);
 }

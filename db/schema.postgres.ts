@@ -51,6 +51,7 @@ export const tallyExpenses = pgTable('tally_expenses', {
   description: text('description').notNull(),
   amount: integer('amount').notNull(),
   currency: text('currency').notNull(),
+  exchangeRateMicros: integer('exchange_rate_micros'),
   category: text('category').notNull(),
   date: text('date').notNull(),
   notes: text('notes'),
@@ -93,6 +94,16 @@ export const tallySettlements = pgTable('tally_settlements', {
   currency: text('currency').notNull(),
   date: text('date'),
   notes: text('notes'),
+  createdBy: text('created_by').notNull(),
+  createdAt: integer('created_at').notNull(),
+});
+
+export const tallyExpenseComments = pgTable('tally_expense_comments', {
+  id: text('id').primaryKey(),
+  tenantId: text('tenant_id').notNull(),
+  expenseId: text('expense_id').notNull(),
+  groupId: text('group_id').notNull(),
+  body: text('body').notNull(),
   createdBy: text('created_by').notNull(),
   createdAt: integer('created_at').notNull(),
 });

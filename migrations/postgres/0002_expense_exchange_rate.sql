@@ -1,0 +1,1 @@
+ALTER TABLE "tally_expenses" ADD COLUMN "exchange_rate_micros" integer;
