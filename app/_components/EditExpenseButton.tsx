@@ -8,13 +8,14 @@ import styles from './ExpensesSection.module.css';
 
 interface Props {
   groupId: string;
+  groupCurrency: string;
   expenseId: string;
   members: MemberOption[];
 }
 
 /** Per-row edit trigger — fetches the expense's full detail on click, then
  *  opens ExpenseFormDialog in edit mode once it arrives. */
-export function EditExpenseButton({ groupId, expenseId, members }: Props) {
+export function EditExpenseButton({ groupId, groupCurrency, expenseId, members }: Props) {
   const [detail, setDetail] = useState<ExpenseDetail | null>(null);
   const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState(false);
@@ -43,6 +44,7 @@ export function EditExpenseButton({ groupId, expenseId, members }: Props) {
       {detail && (
         <ExpenseFormDialog
           groupId={groupId}
+          groupCurrency={groupCurrency}
           members={members}
           initialExpense={detail}
           open={open}

@@ -3,12 +3,6 @@
   gap: var(--sv-space-3);
 }
 
-.header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
 .heading {
   margin: 0;
   font-size: var(--sv-font-size-md);
@@ -28,7 +22,7 @@
   margin: 0;
   padding: 0;
   display: grid;
-  gap: var(--sv-space-3);
+  gap: var(--sv-space-2);
 }
 
 .item {
@@ -46,10 +40,16 @@
   gap: var(--sv-space-3);
 }
 
-.description {
+.text {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sv-space-2);
   font-size: var(--sv-font-size-sm);
-  font-weight: var(--sv-font-weight-semibold);
   color: var(--sv-color-text-primary);
+}
+
+.notes {
+  color: var(--sv-color-text-subtle);
 }
 
 .amount {
@@ -59,45 +59,7 @@
   white-space: nowrap;
 }
 
-.convertedAmount {
-  font-weight: var(--sv-font-weight-regular);
-  color: var(--sv-color-text-subtle);
-}
-
-.itemActions {
-  display: flex;
-  align-items: center;
-  gap: var(--sv-space-2);
-  flex-shrink: 0;
-}
-
-.editButton {
-  all: unset;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  border-radius: var(--sv-radius-sm);
-  color: var(--sv-color-text-subtle);
-  cursor: pointer;
-}
-
-.editButton:hover:not(:disabled) {
-  background: var(--sv-color-surface);
-  color: var(--sv-color-text-primary);
-}
-
-.editButton:disabled {
-  cursor: not-allowed;
-  opacity: 0.5;
-}
-
-.itemMeta {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--sv-space-2);
+.timestamp {
   font-size: var(--sv-font-size-xs);
   color: var(--sv-color-text-subtle);
 }

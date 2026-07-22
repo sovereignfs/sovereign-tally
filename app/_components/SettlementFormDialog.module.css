@@ -9,40 +9,6 @@
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
-.splitMethod {
-  display: grid;
-  gap: var(--sv-space-2);
-}
-
-.participants {
-  display: grid;
-  gap: var(--sv-space-2);
-}
-
-.participantsLabel {
-  font-size: var(--sv-font-size-sm);
-  font-weight: var(--sv-font-weight-medium);
-  color: var(--sv-color-text-primary);
-}
-
-.splitValueInput {
-  width: 6rem;
-  margin-left: auto;
-}
-
-.linkButton {
-  all: unset;
-  align-self: flex-start;
-  font-size: var(--sv-font-size-sm);
-  color: var(--sv-color-text-muted);
-  cursor: pointer;
-  text-decoration: underline;
-}
-
-.linkButton:hover {
-  color: var(--sv-color-text-primary);
-}
-
 .feedbackError {
   margin: 0;
   font-size: var(--sv-font-size-sm);

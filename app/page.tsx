@@ -1,6 +1,7 @@
 import { EmptyState } from '@sovereignfs/ui';
 import { CreateGroupDialog } from './_components/CreateGroupDialog';
-import { getGroups } from './_lib/actions';
+import { OverallBalanceSummary } from './_components/OverallBalanceSummary';
+import { getGroups, getOverallBalance } from './_lib/actions';
 
 export default async function TallyIndexPage() {
   const groups = await getGroups();
@@ -15,7 +16,6 @@ export default async function TallyIndexPage() {
     );
   }
 
-  return (
-    <EmptyState heading="Select a group" description="Choose a group from the sidebar to view it." />
-  );
+  const summaries = await getOverallBalance();
+  return <OverallBalanceSummary summaries={summaries} />;
 }

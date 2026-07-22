@@ -1,9 +1,10 @@
 import { Badge } from '@sovereignfs/ui';
 import { categoryLabel } from '../_lib/categories';
-import { centsToDollars } from '../_lib/money';
+import { centsToDollars, convertCentsWithRate } from '../_lib/money';
 import type { ExpenseRow, MemberOption } from '../_lib/actions';
 import { DeleteExpenseButton } from './DeleteExpenseButton';
 import { EditExpenseButton } from './EditExpenseButton';
+import { ExpenseComments } from './ExpenseComments';
 import { ExpenseFormDialog } from './ExpenseFormDialog';
 import styles from './ExpensesSection.module.css';
 
@@ -19,7 +20,7 @@ export function ExpensesSection({ groupId, currency, expenses, members }: Props)
     <section className={styles.section}>
       <div className={styles.header}>
         <h2 className={styles.heading}>Expenses</h2>
-        <ExpenseFormDialog groupId={groupId} members={members} />
+        <ExpenseFormDialog groupId={groupId} groupCurrency={currency} members={members} />
       </div>
 
       {expenses.length === 0 ? (
@@ -32,9 +33,20 @@ export function ExpensesSection({ groupId, currency, expenses, members }: Props)
                 <span className={styles.description}>{expense.description}</span>
                 <span className={styles.itemActions}>
                   <span className={styles.amount}>
-                    {currency} {centsToDollars(expense.amount)}
+                    {expense.currency} {centsToDollars(expense.amount)}
+                    {expense.exchangeRateMicros != null && (
+                      <span className={styles.convertedAmount}>
+                        {' '}
+                        (≈ {currency} {centsToDollars(convertCentsWithRate(expense.amount, expense.exchangeRateMicros))})
+                      </span>
+                    )}
                   </span>
-                  <EditExpenseButton groupId={groupId} expenseId={expense.id} members={members} />
+                  <EditExpenseButton
+                    groupId={groupId}
+                    groupCurrency={currency}
+                    expenseId={expense.id}
+                    members={members}
+                  />
                   <DeleteExpenseButton
                     groupId={groupId}
                     expenseId={expense.id}
@@ -48,6 +60,7 @@ export function ExpensesSection({ groupId, currency, expenses, members }: Props)
                 <span>Paid by {expense.payerName}</span>
                 <span>Split between {expense.participantNames.join(', ')}</span>
               </div>
+              <ExpenseComments groupId={groupId} expenseId={expense.id} />
             </li>
           ))}
         </ul>

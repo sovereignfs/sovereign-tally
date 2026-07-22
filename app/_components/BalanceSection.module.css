@@ -1,0 +1,126 @@
+.section {
+  display: grid;
+  gap: var(--sv-space-3);
+  padding: var(--sv-space-3);
+  border-radius: var(--sv-radius-md);
+  background: var(--sv-color-surface-sunken);
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sv-space-3);
+}
+
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: var(--sv-space-3);
+}
+
+.downloadLink {
+  font-size: var(--sv-font-size-sm);
+  color: var(--sv-color-text-muted);
+  text-decoration: underline;
+}
+
+.downloadLink:hover {
+  color: var(--sv-color-text-primary);
+}
+
+.heading {
+  margin: 0;
+  font-size: var(--sv-font-size-md);
+  font-weight: var(--sv-font-weight-semibold);
+  color: var(--sv-color-text-primary);
+}
+
+.subheading {
+  margin: 0;
+  font-size: var(--sv-font-size-sm);
+  font-weight: var(--sv-font-weight-semibold);
+  color: var(--sv-color-text-primary);
+}
+
+.currencyBlock {
+  display: grid;
+  gap: var(--sv-space-2);
+}
+
+.currencyBlock + .currencyBlock {
+  padding-top: var(--sv-space-3);
+  border-top: 1px solid var(--sv-color-border);
+}
+
+.currencyHeading {
+  margin: 0;
+  font-size: var(--sv-font-size-xs);
+  font-weight: var(--sv-font-weight-semibold);
+  color: var(--sv-color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.memberList,
+.paymentList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--sv-space-2);
+}
+
+.memberRow,
+.paymentRow {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--sv-space-3);
+  font-size: var(--sv-font-size-sm);
+}
+
+.memberName {
+  font-weight: var(--sv-font-weight-semibold);
+  color: var(--sv-color-text-primary);
+}
+
+.settleUp {
+  display: grid;
+  gap: var(--sv-space-2);
+  padding-top: var(--sv-space-2);
+  border-top: 1px solid var(--sv-color-border);
+}
+
+.emptyHint {
+  margin: 0;
+  font-size: var(--sv-font-size-sm);
+  font-style: italic;
+  color: var(--sv-color-text-subtle);
+}
+
+.paymentAmount {
+  font-weight: var(--sv-font-weight-semibold);
+  color: var(--sv-color-text-primary);
+  white-space: nowrap;
+}
+
+.paymentActions {
+  display: flex;
+  align-items: center;
+  gap: var(--sv-space-2);
+  flex-shrink: 0;
+}
+
+.recordLink {
+  all: unset;
+  font-size: var(--sv-font-size-xs);
+  color: var(--sv-color-text-muted);
+  cursor: pointer;
+  text-decoration: underline;
+  white-space: nowrap;
+}
+
+.recordLink:hover {
+  color: var(--sv-color-text-primary);
+}

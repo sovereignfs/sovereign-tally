@@ -3,18 +3,20 @@
 import { useState, useTransition } from 'react';
 import {
   Button,
-  Checkbox,
+  CurrencyInput,
   DatePicker,
   Dialog,
   FormField,
   Input,
-  SegmentedControl,
+  MemberMultiSelect,
   Select,
+  SplitMethodSelector,
 } from '@sovereignfs/ui';
 import { useRouter } from 'next/navigation';
 import { EXPENSE_CATEGORIES } from '../_lib/categories';
+import { GROUP_CURRENCIES } from '../_lib/currencies';
 import { fromISODate, toISODate } from '../_lib/date';
-import { centsToDollars, centsToShareRatio, dollarsToCents } from '../_lib/money';
+import { centsToDollars, centsToShareRatio, microsToRate, rateToMicros } from '../_lib/money';
 import {
   addExpense,
   updateExpense,
@@ -28,6 +30,7 @@ import styles from './ExpenseFormDialog.module.css';
 
 interface Props {
   groupId: string;
+  groupCurrency: string;
   members: MemberOption[];
   /** When set, the dialog edits this expense instead of creating a new one. */
   initialExpense?: ExpenseDetail;
@@ -38,38 +41,35 @@ interface Props {
   onOpenChange?: (open: boolean) => void;
 }
 
-const SPLIT_METHOD_OPTIONS: { label: string; value: SplitMethod }[] = [
-  { label: 'Equal', value: 'equal' },
-  { label: 'Amount', value: 'amount' },
-  { label: 'Percentage', value: 'percentage' },
-  { label: 'Shares', value: 'shares' },
-];
-
-function buildInitialState(members: MemberOption[], expense?: ExpenseDetail) {
+function buildInitialState(groupCurrency: string, members: MemberOption[], expense?: ExpenseDetail) {
   if (!expense) {
     return {
       description: '',
-      amount: '',
+      amountCents: null as number | null,
       date: new Date(),
       category: EXPENSE_CATEGORIES[0].value as string,
+      currency: groupCurrency,
+      exchangeRateText: '',
       payerId: members[0]?.id ?? '',
       multiplePayers: false,
       payerIds: new Set<string>(),
-      payerValues: {} as Record<string, string>,
+      payerAmountCents: {} as Record<string, number | null>,
       splitMethod: 'equal' as SplitMethod,
       participantIds: new Set(members.map((m) => m.id)),
+      splitAmountCents: {} as Record<string, number | null>,
       splitValues: {} as Record<string, string>,
     };
   }
 
   const payerIds = new Set(expense.payers.map((p) => p.memberId));
-  const payerValues: Record<string, string> = {};
-  for (const p of expense.payers) payerValues[p.memberId] = centsToDollars(p.amountPaidCents);
+  const payerAmountCents: Record<string, number | null> = {};
+  for (const p of expense.payers) payerAmountCents[p.memberId] = p.amountPaidCents;
 
   const participantIds = new Set(expense.shares.map((s) => s.memberId));
+  const splitAmountCents: Record<string, number | null> = {};
   const splitValues: Record<string, string> = {};
   if (expense.splitMethod === 'amount') {
-    for (const s of expense.shares) splitValues[s.memberId] = centsToDollars(s.shareAmountCents);
+    for (const s of expense.shares) splitAmountCents[s.memberId] = s.shareAmountCents;
   } else if (expense.splitMethod === 'percentage') {
     for (const s of expense.shares) {
       splitValues[s.memberId] = ((s.shareAmountCents / expense.amountCents) * 100).toFixed(2);
@@ -85,40 +85,57 @@ function buildInitialState(members: MemberOption[], expense?: ExpenseDetail) {
 
   return {
     description: expense.description,
-    amount: centsToDollars(expense.amountCents),
+    amountCents: expense.amountCents as number | null,
     date: fromISODate(expense.date),
     category: expense.category,
+    currency: expense.currency,
+    exchangeRateText: expense.exchangeRateMicros != null ? microsToRate(expense.exchangeRateMicros) : '',
     payerId: expense.payers[0]?.memberId ?? members[0]?.id ?? '',
     multiplePayers: expense.payers.length > 1,
     payerIds,
-    payerValues,
+    payerAmountCents,
     splitMethod: expense.splitMethod,
     participantIds,
+    splitAmountCents,
     splitValues,
   };
 }
 
-export function ExpenseFormDialog({ groupId, members, initialExpense, open: openProp, onOpenChange }: Props) {
+export function ExpenseFormDialog({
+  groupId,
+  groupCurrency,
+  members,
+  initialExpense,
+  open: openProp,
+  onOpenChange,
+}: Props) {
   const router = useRouter();
   const isEdit = initialExpense !== undefined;
   const isControlled = openProp !== undefined;
   const [openState, setOpenState] = useState(false);
   const open = isControlled ? openProp : openState;
 
-  const initial = buildInitialState(members, initialExpense);
+  const initial = buildInitialState(groupCurrency, members, initialExpense);
   const [description, setDescription] = useState(initial.description);
-  const [amount, setAmount] = useState(initial.amount);
+  const [amountCents, setAmountCents] = useState<number | null>(initial.amountCents);
   const [date, setDate] = useState<Date>(initial.date);
   const [category, setCategory] = useState<string>(initial.category);
+  const [currency, setCurrency] = useState(initial.currency);
+  const [exchangeRateText, setExchangeRateText] = useState(initial.exchangeRateText);
   const [payerId, setPayerId] = useState(initial.payerId);
   const [multiplePayers, setMultiplePayers] = useState(initial.multiplePayers);
   const [payerIds, setPayerIds] = useState<Set<string>>(initial.payerIds);
-  // Raw per-payer text input, keyed by member id — only read when multiplePayers is on.
-  const [payerValues, setPayerValues] = useState<Record<string, string>>(initial.payerValues);
+  // Per-payer amount, keyed by member id — only read when multiplePayers is on.
+  const [payerAmountCents, setPayerAmountCents] = useState<Record<string, number | null>>(
+    initial.payerAmountCents,
+  );
   const [splitMethod, setSplitMethod] = useState<SplitMethod>(initial.splitMethod);
   const [participantIds, setParticipantIds] = useState<Set<string>>(initial.participantIds);
-  // Raw per-participant text input for the amount/percentage/shares methods,
-  // keyed by member id — only read for whichever method is currently active.
+  // Per-participant amount, keyed by member id — only read for the 'amount' split method.
+  const [splitAmountCents, setSplitAmountCents] = useState<Record<string, number | null>>(
+    initial.splitAmountCents,
+  );
+  // Raw per-participant text input for the percentage/shares methods, keyed by member id.
   const [splitValues, setSplitValues] = useState<Record<string, string>>(initial.splitValues);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
@@ -133,17 +150,20 @@ export function ExpenseFormDialog({ groupId, members, initialExpense, open: open
     // between opens while this component instance stays mounted across the
     // resulting router.refresh() — re-seed from current props every time,
     // not just once at mount (useState's initial value only applies once).
-    const fresh = buildInitialState(members, initialExpense);
+    const fresh = buildInitialState(groupCurrency, members, initialExpense);
     setDescription(fresh.description);
-    setAmount(fresh.amount);
+    setAmountCents(fresh.amountCents);
     setDate(fresh.date);
     setCategory(fresh.category);
+    setCurrency(fresh.currency);
+    setExchangeRateText(fresh.exchangeRateText);
     setPayerId(fresh.payerId);
     setMultiplePayers(fresh.multiplePayers);
     setPayerIds(fresh.payerIds);
-    setPayerValues(fresh.payerValues);
+    setPayerAmountCents(fresh.payerAmountCents);
     setSplitMethod(fresh.splitMethod);
     setParticipantIds(fresh.participantIds);
+    setSplitAmountCents(fresh.splitAmountCents);
     setSplitValues(fresh.splitValues);
     setError(null);
   }
@@ -166,41 +186,33 @@ export function ExpenseFormDialog({ groupId, members, initialExpense, open: open
     });
   }
 
-  const amountCentsPreview = dollarsToCents(amount);
   const participantList = members.filter((m) => participantIds.has(m.id));
   const payerList = members.filter((m) => payerIds.has(m.id));
 
   let payerHint: string | null = null;
-  if (multiplePayers && amountCentsPreview !== null) {
-    const enteredCents = payerList.reduce(
-      (sum, m) => sum + (dollarsToCents(payerValues[m.id] ?? '') ?? 0),
-      0,
-    );
-    payerHint = `Remaining: ${centsToDollars(amountCentsPreview - enteredCents)}`;
+  if (multiplePayers && amountCents !== null) {
+    const enteredCents = payerList.reduce((sum, m) => sum + (payerAmountCents[m.id] ?? 0), 0);
+    payerHint = `Remaining: ${centsToDollars(amountCents - enteredCents)}`;
   }
 
-  function buildPayerInputs(amountCents: number): ExpensePayerInput[] | null {
+  function buildPayerInputs(totalAmountCents: number): ExpensePayerInput[] | null {
     if (!multiplePayers) {
-      return payerId ? [{ memberId: payerId, amountPaidCents: amountCents }] : null;
+      return payerId ? [{ memberId: payerId, amountPaidCents: totalAmountCents }] : null;
     }
     if (payerList.length === 0) return null;
     const inputs: ExpensePayerInput[] = [];
     for (const m of payerList) {
-      const cents = dollarsToCents(payerValues[m.id] ?? '');
-      if (cents === null) return null;
+      const cents = payerAmountCents[m.id];
+      if (cents == null) return null;
       inputs.push({ memberId: m.id, amountPaidCents: cents });
     }
     return inputs;
   }
 
   let splitHint: string | null = null;
-  if (splitMethod === 'amount' && amountCentsPreview !== null) {
-    const enteredCents = participantList.reduce(
-      (sum, m) => sum + (dollarsToCents(splitValues[m.id] ?? '') ?? 0),
-      0,
-    );
-    const remaining = amountCentsPreview - enteredCents;
-    splitHint = `Remaining: ${centsToDollars(remaining)}`;
+  if (splitMethod === 'amount' && amountCents !== null) {
+    const enteredCents = participantList.reduce((sum, m) => sum + (splitAmountCents[m.id] ?? 0), 0);
+    splitHint = `Remaining: ${centsToDollars(amountCents - enteredCents)}`;
   } else if (splitMethod === 'percentage') {
     const entered = participantList.reduce((sum, m) => sum + (Number(splitValues[m.id]) || 0), 0);
     splitHint = `Remaining: ${(100 - entered).toFixed(1)}%`;
@@ -208,14 +220,15 @@ export function ExpenseFormDialog({ groupId, members, initialExpense, open: open
 
   function buildParticipantInputs(): ExpenseParticipantInput[] {
     return participantList.map((m) => {
-      const raw = splitValues[m.id] ?? '';
-      if (splitMethod === 'amount') return { memberId: m.id, amountCents: dollarsToCents(raw) ?? undefined };
+      if (splitMethod === 'amount') {
+        return { memberId: m.id, amountCents: splitAmountCents[m.id] ?? undefined };
+      }
       if (splitMethod === 'percentage') {
-        const value = Number(raw);
+        const value = Number(splitValues[m.id] ?? '');
         return { memberId: m.id, percentage: Number.isFinite(value) ? value : undefined };
       }
       if (splitMethod === 'shares') {
-        const value = Number(raw);
+        const value = Number(splitValues[m.id] ?? '');
         return { memberId: m.id, shares: Number.isFinite(value) ? value : undefined };
       }
       return { memberId: m.id };
@@ -224,7 +237,6 @@ export function ExpenseFormDialog({ groupId, members, initialExpense, open: open
 
   function submit() {
     setError(null);
-    const amountCents = dollarsToCents(amount);
     if (amountCents === null) {
       setError('Enter a valid amount.');
       return;
@@ -238,12 +250,23 @@ export function ExpenseFormDialog({ groupId, members, initialExpense, open: open
       setError('Select at least one person to split with.');
       return;
     }
+    let exchangeRateMicros: number | undefined;
+    if (currency !== groupCurrency) {
+      const micros = rateToMicros(exchangeRateText);
+      if (micros === null) {
+        setError('Enter a valid exchange rate.');
+        return;
+      }
+      exchangeRateMicros = micros;
+    }
 
     const input = {
       description,
       amountCents,
       date: toISODate(date),
       category,
+      currency,
+      exchangeRateMicros,
       payers,
       splitMethod,
       participants: buildParticipantInputs(),
@@ -298,11 +321,10 @@ export function ExpenseFormDialog({ groupId, members, initialExpense, open: open
           <div className={styles.grid}>
             <FormField label="Amount" required>
               {(field) => (
-                <Input
+                <CurrencyInput
                   {...field}
-                  inputMode="decimal"
-                  value={amount}
-                  onChange={(e) => setAmount(e.currentTarget.value)}
+                  valueCents={amountCents}
+                  onValueChange={setAmountCents}
                   placeholder="0.00"
                 />
               )}
@@ -311,46 +333,66 @@ export function ExpenseFormDialog({ groupId, members, initialExpense, open: open
               {() => <DatePicker value={date} onChange={setDate} aria-label="Expense date" />}
             </FormField>
           </div>
-          <FormField label="Category">
-            {(field) => (
-              <Select {...field} value={category} onChange={(e) => setCategory(e.currentTarget.value)}>
-                {EXPENSE_CATEGORIES.map((c) => (
-                  <option key={c.value} value={c.value}>
-                    {c.label}
-                  </option>
-                ))}
-              </Select>
-            )}
-          </FormField>
+          <div className={styles.grid}>
+            <FormField label="Category">
+              {(field) => (
+                <Select {...field} value={category} onChange={(e) => setCategory(e.currentTarget.value)}>
+                  {EXPENSE_CATEGORIES.map((c) => (
+                    <option key={c.value} value={c.value}>
+                      {c.label}
+                    </option>
+                  ))}
+                </Select>
+              )}
+            </FormField>
+            <FormField label="Currency">
+              {(field) => (
+                <Select {...field} value={currency} onChange={(e) => setCurrency(e.currentTarget.value)}>
+                  {GROUP_CURRENCIES.map((c) => (
+                    <option key={c.code} value={c.code}>
+                      {c.code}
+                    </option>
+                  ))}
+                </Select>
+              )}
+            </FormField>
+          </div>
+          {currency !== groupCurrency && (
+            <FormField
+              label={`Exchange rate (1 ${currency} = ? ${groupCurrency})`}
+              hint={`How much is 1 ${currency} worth in ${groupCurrency}? Manually entered — not auto-converted.`}
+              required
+            >
+              {(field) => (
+                <Input
+                  {...field}
+                  inputMode="decimal"
+                  value={exchangeRateText}
+                  onChange={(e) => setExchangeRateText(e.currentTarget.value)}
+                  placeholder="1.00"
+                />
+              )}
+            </FormField>
+          )}
           {multiplePayers ? (
             <div className={styles.participants}>
-              <span className={styles.participantsLabel}>Paid by</span>
-              {members.map((m) => {
-                const included = payerIds.has(m.id);
-                return (
-                  <div key={m.id} className={styles.participantRow}>
-                    <Checkbox
-                      checked={included}
-                      onChange={(checked) => togglePayer(m.id, checked)}
-                      label={m.displayName}
-                    />
-                    {included && (
-                      <Input
-                        className={styles.splitValueInput}
-                        inputMode="decimal"
-                        value={payerValues[m.id] ?? ''}
-                        onChange={(e) => {
-                          const value = e.currentTarget.value;
-                          setPayerValues((prev) => ({ ...prev, [m.id]: value }));
-                        }}
-                        placeholder="0.00"
-                        aria-label={`${m.displayName}'s payment`}
-                      />
-                    )}
-                  </div>
-                );
-              })}
-              {payerHint && <span className={styles.splitHint}>{payerHint}</span>}
+              <MemberMultiSelect
+                label="Paid by"
+                options={members.map((m) => ({ id: m.id, label: m.displayName }))}
+                selectedIds={payerIds}
+                onToggle={togglePayer}
+                hint={payerHint}
+                renderTrailing={(id) => (
+                  <CurrencyInput
+                    valueCents={payerAmountCents[id] ?? null}
+                    onValueChange={(cents) =>
+                      setPayerAmountCents((prev) => ({ ...prev, [id]: cents }))
+                    }
+                    placeholder="0.00"
+                    aria-label={`${members.find((m) => m.id === id)?.displayName}'s payment`}
+                  />
+                )}
+              />
               <button type="button" className={styles.linkButton} onClick={() => setMultiplePayers(false)}>
                 Use a single payer
               </button>
@@ -376,50 +418,52 @@ export function ExpenseFormDialog({ groupId, members, initialExpense, open: open
 
           <div className={styles.splitMethod}>
             <span className={styles.participantsLabel}>Split</span>
-            <SegmentedControl
-              value={splitMethod}
-              onChange={setSplitMethod}
-              options={SPLIT_METHOD_OPTIONS}
-              aria-label="Split method"
-              size="sm"
-            />
+            <SplitMethodSelector value={splitMethod} onChange={setSplitMethod} size="sm" />
           </div>
 
-          <div className={styles.participants}>
-            <span className={styles.participantsLabel}>Split between</span>
-            {members.map((m) => {
-              const included = participantIds.has(m.id);
-              return (
-                <div key={m.id} className={styles.participantRow}>
-                  <Checkbox
-                    checked={included}
-                    onChange={(checked) => toggleParticipant(m.id, checked)}
-                    label={m.displayName}
-                  />
-                  {splitMethod !== 'equal' && included && (
-                    <Input
-                      className={styles.splitValueInput}
-                      inputMode={splitMethod === 'amount' ? 'decimal' : 'numeric'}
-                      value={splitValues[m.id] ?? ''}
-                      onChange={(e) => {
-                        // Capture the value now — React 19 Strict Mode
-                        // double-invokes state updater functions to check
-                        // purity, and by the second call the synthetic
-                        // event's currentTarget has already been released.
-                        const value = e.currentTarget.value;
-                        setSplitValues((prev) => ({ ...prev, [m.id]: value }));
-                      }}
-                      placeholder={
-                        splitMethod === 'amount' ? '0.00' : splitMethod === 'percentage' ? '%' : '#'
-                      }
-                      aria-label={`${m.displayName}'s ${splitMethod}`}
-                    />
-                  )}
-                </div>
-              );
-            })}
-            {splitHint && <span className={styles.splitHint}>{splitHint}</span>}
-          </div>
+          <MemberMultiSelect
+            label="Split between"
+            options={members.map((m) => ({ id: m.id, label: m.displayName }))}
+            selectedIds={participantIds}
+            onToggle={toggleParticipant}
+            hint={splitHint}
+            renderTrailing={
+              splitMethod === 'equal'
+                ? undefined
+                : (id) => {
+                    const displayName = members.find((m) => m.id === id)?.displayName;
+                    if (splitMethod === 'amount') {
+                      return (
+                        <CurrencyInput
+                          valueCents={splitAmountCents[id] ?? null}
+                          onValueChange={(cents) =>
+                            setSplitAmountCents((prev) => ({ ...prev, [id]: cents }))
+                          }
+                          placeholder="0.00"
+                          aria-label={`${displayName}'s amount`}
+                        />
+                      );
+                    }
+                    return (
+                      <Input
+                        className={styles.splitValueInput}
+                        inputMode="numeric"
+                        value={splitValues[id] ?? ''}
+                        onChange={(e) => {
+                          // Capture the value now — React 19 Strict Mode
+                          // double-invokes state updater functions to check
+                          // purity, and by the second call the synthetic
+                          // event's currentTarget has already been released.
+                          const value = e.currentTarget.value;
+                          setSplitValues((prev) => ({ ...prev, [id]: value }));
+                        }}
+                        placeholder={splitMethod === 'percentage' ? '%' : '#'}
+                        aria-label={`${displayName}'s ${splitMethod}`}
+                      />
+                    );
+                  }
+            }
+          />
 
           {error && (
             <p className={styles.feedbackError} role="status" aria-live="polite">
